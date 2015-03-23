@@ -60,16 +60,16 @@ import org.w3c.dom.Node;
  * 
  */
 @Step( id = "HazelcastInput", image = "hazelcast-input.png", name = "Hazelcast Input",
-    description = "Reads from a memcached instance", categoryDescription = "Input" )
-public class HazelcastInputMeta extends BaseStepMeta implements StepMetaInterface {
+    description = "Reads from a Hazelcast instance", categoryDescription = "Input" )
+public class HazelcastInputMeta extends BaseHazelcastMeta {
   private static Class<?> PKG = HazelcastInputMeta.class; // for i18n purposes, needed by Translator2!! $NON-NLS-1$
 
-  private String mapFieldName;
+  private String structureName;
   private String keyFieldName;
   private String keyTypeName;
   private String valueFieldName;
   private String valueTypeName;
-  private Set<InetSocketAddress> servers;
+
 
   public HazelcastInputMeta() {
     super(); // allocate BaseStepMeta
@@ -161,12 +161,12 @@ public class HazelcastInputMeta extends BaseStepMeta implements StepMetaInterfac
     return new HazelcastInputData();
   }
   
-  public String getMapFieldName() {
-    return mapFieldName;
+  public String getStructureName() {
+    return structureName;
   }
 
-  public void setMapFieldName( String mapFieldName ) {
-    this.mapFieldName = mapFieldName;
+  public void setStructureName( String structureName ) {
+    this.structureName = structureName;
   }
 
   public String getKeyFieldName() {
@@ -201,18 +201,10 @@ public class HazelcastInputMeta extends BaseStepMeta implements StepMetaInterfac
     this.valueTypeName = mapFieldName;
   }
   
-  public Set<InetSocketAddress> getServers() {
-    return servers;
-  }
-
-  public void setServers( Set<InetSocketAddress> servers ) {
-    this.servers = servers;
-  }  
-
   @Override
   public String getXML() throws KettleException {
     StringBuffer retval = new StringBuffer();
-    retval.append( "    " + XMLHandler.addTagValue( "mapfield", this.getMapFieldName() ) );
+    retval.append( "    " + XMLHandler.addTagValue( "mapfield", this.getStructureName() ) );
     retval.append( "    " + XMLHandler.addTagValue( "keyfield", this.getKeyFieldName() ) );
     retval.append( "    " + XMLHandler.addTagValue( "keytype", this.getKeyTypeName() ) );
     retval.append( "    " + XMLHandler.addTagValue( "valuefield", this.getValueFieldName() ) );
@@ -234,7 +226,7 @@ public class HazelcastInputMeta extends BaseStepMeta implements StepMetaInterfac
 
   private void readData( Node stepnode ) throws KettleXMLException {
     try {
-      this.mapFieldName = XMLHandler.getTagValue( stepnode, "mapfield" );
+      this.structureName = XMLHandler.getTagValue( stepnode, "mapfield" );
       this.keyFieldName = XMLHandler.getTagValue( stepnode, "keyfield" );
       this.keyTypeName = XMLHandler.getTagValue( stepnode, "keytype" );
       this.valueFieldName = XMLHandler.getTagValue( stepnode, "valuefield" );
@@ -260,7 +252,7 @@ public class HazelcastInputMeta extends BaseStepMeta implements StepMetaInterfac
   public void readRep( Repository rep, IMetaStore metaStore, ObjectId id_step, List<DatabaseMeta> databases )
     throws KettleException {
     try {
-      this.mapFieldName = rep.getStepAttributeString( id_step, "mapfield" );
+      this.structureName = rep.getStepAttributeString( id_step, "mapfield" );
       this.keyFieldName = rep.getStepAttributeString( id_step, "keyfield" );
       this.keyTypeName = rep.getStepAttributeString( id_step, "keytype" );
       this.valueFieldName = rep.getStepAttributeString( id_step, "valuefield" );
@@ -284,7 +276,7 @@ public class HazelcastInputMeta extends BaseStepMeta implements StepMetaInterfac
   public void saveRep( Repository rep, IMetaStore metaStore, ObjectId id_transformation, ObjectId id_step )
     throws KettleException {
     try {
-      rep.saveStepAttribute( id_transformation, id_step, "mapfield", this.mapFieldName );
+      rep.saveStepAttribute( id_transformation, id_step, "mapfield", this.structureName );
       rep.saveStepAttribute( id_transformation, id_step, "keyfield", this.keyFieldName );
       rep.saveStepAttribute( id_transformation, id_step, "keytype", this.keyTypeName );
       rep.saveStepAttribute( id_transformation, id_step, "valuefield", this.valueFieldName );

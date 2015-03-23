@@ -1,8 +1,6 @@
 /*******************************************************************************
  *
- * Pentaho Data Integration
- *
- * Copyright (C) 2002-2012 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2014-2015 by Matt Burgess
  *
  *******************************************************************************
  *
@@ -26,6 +24,8 @@ import java.net.InetSocketAddress;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.hazelcast.core.IQueue;
+import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.Trans;
@@ -44,7 +44,6 @@ import com.hazelcast.core.IMap;
 
 /**
  * The Hazelcast Output step stores value objects, for the given key names, to Hazelcast server(s).
- * 
  */
 public class HazelcastOutput extends BaseStep implements StepInterface {
   private static Class<?> PKG = HazelcastOutputMeta.class; // for i18n purposes, needed by Translator2!! $NON-NLS-1$
@@ -55,7 +54,7 @@ public class HazelcastOutput extends BaseStep implements StepInterface {
   protected HazelcastInstance client = null;
 
   public HazelcastOutput( StepMeta stepMeta, StepDataInterface stepDataInterface, int copyNr, TransMeta transMeta,
-      Trans trans ) {
+                          Trans trans ) {
     super( stepMeta, stepDataInterface, copyNr, transMeta, trans );
   }
 
@@ -77,7 +76,7 @@ public class HazelcastOutput extends BaseStep implements StepInterface {
         }
         return true;
       } catch ( Exception e ) {
-        logError( BaseMessages.getString( PKG, "HazelcastInput.Error.ConnectError" ), e );
+        logError( BaseMessages.getString( PKG, "HazelcastOutput.Error.ConnectError" ), e );
         return false;
       }
     } else {
@@ -104,36 +103,28 @@ public class HazelcastOutput extends BaseStep implements StepInterface {
       data.outputRowMeta = getInputRowMeta().clone();
       // Get output field types
       meta.getFields( data.outputRowMeta, getStepname(), null, null, this, repository, metaStore );
-
     }
 
     Object[] outputRowData = r;
-    
-    // Get map from Hazelcast, don't cast now, be lazy. TODO change this?
-    String mapName = fieldSubstitute( environmentSubstitute( meta.getMapFieldName() ), getInputRowMeta(), r );
-    int mapFieldIndex = getInputRowMeta().indexOfValue( mapName );
-    if ( mapFieldIndex < 0 ) {
-      this.logBasic( BaseMessages.getString( PKG, "HazelcastOutput.Warning.NotFound.MapField", mapName ) );
-    }
-    
-    // Get value from Hazelcast, don't cast now, be lazy. TODO change this?
-    int keyFieldIndex = getInputRowMeta().indexOfValue( meta.getKeyFieldName() );
-    if ( keyFieldIndex < 0 ) {
-      throw new KettleException( BaseMessages.getString( PKG, "HazelcastOutputMeta.Exception.KeyFieldNameNotFound" ) );
-    }
-    int valueFieldIndex = getInputRowMeta().indexOfValue( meta.getValueFieldName() );
-    if ( valueFieldIndex < 0 ) {
-      throw new KettleException( BaseMessages.getString( PKG, "HazelcastOutputMeta.Exception.ValueFieldNameNotFound" ) );
-    }
 
-    IMap<Object, Object> map = client.getMap( mapName );
-    map.put( r[keyFieldIndex], r[valueFieldIndex], meta.getExpirationTime(), TimeUnit.SECONDS );
-
+    // Get structure from Hazelcast
+    String structName = fieldSubstitute( environmentSubstitute( meta.getStructureName() ), getInputRowMeta(), r );
+    String structType = meta.getStructureType();
+    // TODO better way to pick which API method to call based on structure type
+    if ( structType == "Queue" ) {
+      IQueue<SerializableRow> q = client.getQueue( structName );
+      SerializableRow sRow = new SerializableRow( data.outputRowMeta, outputRowData );
+      if ( !q.offer( sRow ) ) {
+        putError( data.outputRowMeta, outputRowData, 1,
+          BaseMessages.getString( PKG, "HazelcastOutput.Error.Row.PutRowInQ" ), null, null );
+      }
+    }
     putRow( data.outputRowMeta, outputRowData ); // copy row to possible alternate rowset(s).
 
     if ( checkFeedback( getLinesRead() ) ) {
-      if ( log.isBasic() )
+      if ( log.isBasic() ) {
         logBasic( BaseMessages.getString( PKG, "HazelcastOutput.Log.LineNumber" ) + getLinesRead() );
+      }
     }
 
     return true;

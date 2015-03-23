@@ -1,8 +1,6 @@
 /*******************************************************************************
  *
- * Pentaho Data Integration
- *
- * Copyright (C) 2002-2012 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2014-2015 by Matt Burgess
  *
  *******************************************************************************
  *
@@ -23,23 +21,23 @@
 package org.pentaho.di.ui.trans.steps.hazelcast;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
-import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.ShellAdapter;
 import org.eclipse.swt.events.ShellEvent;
-import org.eclipse.swt.graphics.Cursor;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
@@ -50,10 +48,12 @@ import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.core.row.ValueMeta;
+import org.pentaho.di.core.row.ValueMetaInterface;
+import org.pentaho.di.core.row.value.ValueMetaFactory;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStepMeta;
-import org.pentaho.di.trans.step.StepDialogInterface;
 import org.pentaho.di.trans.steps.hazelcast.HazelcastOutputMeta;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
@@ -61,33 +61,28 @@ import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
-public class HazelcastOutputDialog extends BaseStepDialog implements StepDialogInterface {
+public class HazelcastOutputDialog extends BaseHazelcastDialog {
   private static Class<?> PKG = HazelcastOutputMeta.class; // for i18n purposes, needed by Translator2!! $NON-NLS-1$
 
   private HazelcastOutputMeta input;
   private boolean gotPreviousFields = false;
   private RowMetaInterface previousFields;
-  
-  private Label wlMapField;
-  private TextVar wMapField;
-  private FormData fdlMapField, fdMapField;
 
-  private Label wlKeyField;
-  private CCombo wKeyField;
-  private FormData fdlKeyField, fdKeyField;
+  private Label wlStructureName;
+  private TextVar wStructureName;
+  private FormData fdlStructureName, fdStructureName;
 
-  private Label wlValueField;
-  private CCombo wValueField;
-  private FormData fdlValueField, fdValueField;
+  private Label wlStructureType;
+  private CCombo wStructureType;
+  private FormData fdlStructureType, fdStructureType;
+
+  private Label wlFields;
+  private TableView wFields;
+  private FormData fdlFields, fdFields;
 
   private Label wlExpirationTime;
   private TextVar wExpirationTime;
   private FormData fdlExpirationTime, fdExpirationTime;
-
-  private Composite wServersComp;
-  private Label wlServers;
-  private TableView wServers;
-  private FormData fdlServers, fdServers;
 
   public HazelcastOutputDialog( Shell parent, Object in, TransMeta tr, String sname ) {
     super( parent, (BaseStepMeta) in, tr, sname );
@@ -137,84 +132,51 @@ public class HazelcastOutputDialog extends BaseStepDialog implements StepDialogI
     fdStepname.top = new FormAttachment( 0, margin );
     fdStepname.right = new FormAttachment( 100, 0 );
     wStepname.setLayoutData( fdStepname );
-    
-    // Map field
-    wlMapField = new Label( shell, SWT.RIGHT );
-    wlMapField.setText( BaseMessages.getString( PKG, "HazelcastOutputDialog.MapField.Label" ) );
-    props.setLook( wlMapField );
-    fdlMapField = new FormData();
-    fdlMapField.left = new FormAttachment( 0, 0 );
-    fdlMapField.right = new FormAttachment( middle, -margin );
-    fdlMapField.top = new FormAttachment( wStepname, margin );
-    wlMapField.setLayoutData( fdlMapField );
-    wMapField = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wMapField );
-    wMapField.addModifyListener( lsMod );
-    fdMapField = new FormData();
-    fdMapField.left = new FormAttachment( middle, 0 );
-    fdMapField.top = new FormAttachment( wStepname, margin );
-    fdMapField.right = new FormAttachment( 100, 0 );
-    wMapField.setLayoutData( fdMapField );
 
-    // Key field
-    wlKeyField = new Label( shell, SWT.RIGHT );
-    wlKeyField.setText( BaseMessages.getString( PKG, "HazelcastOutputDialog.KeyField.Label" ) );
-    props.setLook( wlKeyField );
-    fdlKeyField = new FormData();
-    fdlKeyField.left = new FormAttachment( 0, 0 );
-    fdlKeyField.right = new FormAttachment( middle, -margin );
-    fdlKeyField.top = new FormAttachment( wMapField, margin );
-    wlKeyField.setLayoutData( fdlKeyField );
-    wKeyField = new CCombo( shell, SWT.BORDER | SWT.READ_ONLY );
-    props.setLook( wKeyField );
-    wKeyField.addModifyListener( lsMod );
-    fdKeyField = new FormData();
-    fdKeyField.left = new FormAttachment( middle, 0 );
-    fdKeyField.top = new FormAttachment( wMapField, margin );
-    fdKeyField.right = new FormAttachment( 100, 0 );
-    wKeyField.setLayoutData( fdKeyField );
-    wKeyField.addFocusListener( new FocusListener() {
-      public void focusLost( org.eclipse.swt.events.FocusEvent e ) {
-      }
+    Control lastControl = wStepname;
 
-      public void focusGained( org.eclipse.swt.events.FocusEvent e ) {
-        Cursor busy = new Cursor( shell.getDisplay(), SWT.CURSOR_WAIT );
-        shell.setCursor( busy );
-        getFieldsInto( wKeyField );
-        shell.setCursor( null );
-        busy.dispose();
-      }
-    } );
+    // Structure name
+    wlStructureName = new Label( shell, SWT.RIGHT );
+    wlStructureName.setText( BaseMessages.getString( PKG, "HazelcastOutputDialog.StructureName.Label" ) );
+    props.setLook( wlStructureName );
+    fdlStructureName = new FormData();
+    fdlStructureName.left = new FormAttachment( 0, 0 );
+    fdlStructureName.right = new FormAttachment( middle, -margin );
+    fdlStructureName.top = new FormAttachment( wStepname, margin );
+    wlStructureName.setLayoutData( fdlStructureName );
+    wStructureName = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wStructureName );
+    wStructureName.addModifyListener( lsMod );
+    fdStructureName = new FormData();
+    fdStructureName.left = new FormAttachment( middle, 0 );
+    fdStructureName.top = new FormAttachment( wStepname, margin );
+    fdStructureName.right = new FormAttachment( 100, 0 );
+    wStructureName.setLayoutData( fdStructureName );
 
-    // Value field
-    wlValueField = new Label( shell, SWT.RIGHT );
-    wlValueField.setText( BaseMessages.getString( PKG, "HazelcastOutputDialog.ValueField.Label" ) );
-    props.setLook( wlValueField );
-    fdlValueField = new FormData();
-    fdlValueField.left = new FormAttachment( 0, 0 );
-    fdlValueField.right = new FormAttachment( middle, -margin );
-    fdlValueField.top = new FormAttachment( wKeyField, margin );
-    wlValueField.setLayoutData( fdlValueField );
-    wValueField = new CCombo( shell, SWT.BORDER | SWT.READ_ONLY );
-    props.setLook( wValueField );
-    wValueField.addModifyListener( lsMod );
-    fdValueField = new FormData();
-    fdValueField.left = new FormAttachment( middle, 0 );
-    fdValueField.top = new FormAttachment( wKeyField, margin );
-    fdValueField.right = new FormAttachment( 100, 0 );
-    wValueField.setLayoutData( fdValueField );
-    wValueField.addFocusListener( new FocusListener() {
-      public void focusLost( org.eclipse.swt.events.FocusEvent e ) {
-      }
+    lastControl = wStructureName;
 
-      public void focusGained( org.eclipse.swt.events.FocusEvent e ) {
-        Cursor busy = new Cursor( shell.getDisplay(), SWT.CURSOR_WAIT );
-        shell.setCursor( busy );
-        getFieldsInto( wValueField );
-        shell.setCursor( null );
-        busy.dispose();
-      }
-    } );
+    // TODO Structure type
+    wlStructureType = new Label( shell, SWT.RIGHT );
+    wlStructureType.setText( BaseMessages.getString( PKG, "HazelcastOutputDialog.StructureType.Label" ) );
+    props.setLook( wlStructureType );
+    fdlStructureType = new FormData();
+    fdlStructureType.left = new FormAttachment( 0, 0 );
+    fdlStructureType.top = new FormAttachment( lastControl, margin );
+    fdlStructureType.right = new FormAttachment( middle, -margin );
+    wlStructureType.setLayoutData( fdlStructureType );
+    wStructureType = new CCombo( shell, SWT.BORDER | SWT.READ_ONLY );
+    wStructureType.setText( BaseMessages.getString( PKG, "HazelcastOutputDialog.StructureType.Label" ) );
+    props.setLook( wStructureType );
+
+    wStructureType.setItems( getStructureTypes() );
+    wStructureType.addModifyListener( lsMod );
+    fdStructureType = new FormData();
+    fdStructureType.left = new FormAttachment( middle, 0 );
+    fdStructureType.top = new FormAttachment( wStructureName, margin );
+    fdStructureType.right = new FormAttachment( 100, 0 );
+    wStructureType.setLayoutData( fdStructureType );
+
+    lastControl = wStructureType;
 
     // Expiration field
     wlExpirationTime = new Label( shell, SWT.RIGHT );
@@ -223,60 +185,70 @@ public class HazelcastOutputDialog extends BaseStepDialog implements StepDialogI
     fdlExpirationTime = new FormData();
     fdlExpirationTime.left = new FormAttachment( 0, 0 );
     fdlExpirationTime.right = new FormAttachment( middle, -margin );
-    fdlExpirationTime.top = new FormAttachment( wValueField, margin );
+    fdlExpirationTime.top = new FormAttachment( lastControl, margin );
     wlExpirationTime.setLayoutData( fdlExpirationTime );
     wExpirationTime = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wExpirationTime );
     wExpirationTime.addModifyListener( lsMod );
     fdExpirationTime = new FormData();
     fdExpirationTime.left = new FormAttachment( middle, 0 );
-    fdExpirationTime.top = new FormAttachment( wValueField, margin );
+    fdExpirationTime.top = new FormAttachment( lastControl, margin );
     fdExpirationTime.right = new FormAttachment( 100, 0 );
     wExpirationTime.setLayoutData( fdExpirationTime );
 
-    ColumnInfo[] colinf =
-        new ColumnInfo[] {
-          new ColumnInfo( BaseMessages.getString( PKG, "HazelcastOutputDialog.HostName.Column" ),
-              ColumnInfo.COLUMN_TYPE_TEXT, false ),
-          new ColumnInfo( BaseMessages.getString( PKG, "HazelcastOutputDialog.Port.Column" ),
-              ColumnInfo.COLUMN_TYPE_TEXT, false ), };
+    lastControl = wExpirationTime;
 
     // Servers
-    wServersComp = new Composite( wExpirationTime, SWT.NONE );
-    props.setLook( wServersComp );
+    addServerUI( shell, wExpirationTime, props, transMeta, lsMod, 5 /* TODO */, SWT.NONE );
+    lastControl = wServers;
 
-    FormLayout fileLayout = new FormLayout();
-    fileLayout.marginWidth = 3;
-    fileLayout.marginHeight = 3;
-    wServersComp.setLayout( fileLayout );
+    // Fields
+    ColumnInfo[] colinf = new ColumnInfo[]
+      {
+        new ColumnInfo(
+          BaseMessages.getString( PKG, "HazelcastOutputDialog.FieldsTable.FieldName.Column" ),
+          ColumnInfo.COLUMN_TYPE_TEXT,
+          false ),
+        new ColumnInfo(
+          BaseMessages.getString( PKG, "HazelcastOutputDialog.FieldsTable.Type.Column" ),
+          ColumnInfo.COLUMN_TYPE_CCOMBO,
+          ValueMeta.getTypes(),
+          true )
+      };
+    wlFields = new Label( shell, SWT.RIGHT );
+    wlFields.setText( BaseMessages.getString( PKG, "HazelcastOutputDialog.Output.Label" ) );
+    props.setLook( wlFields );
+    fdlFields = new FormData();
+    fdlFields.left = new FormAttachment( 0, 0 );
+    fdlFields.right = new FormAttachment( middle / 4, -margin );
+    fdlFields.top = new FormAttachment( lastControl, margin, SWT.BOTTOM );
+    wlFields.setLayoutData( fdlFields );
 
-    wlServers = new Label( shell, SWT.RIGHT );
-    wlServers.setText( BaseMessages.getString( PKG, "HazelcastOutputDialog.Servers.Label" ) );
-    props.setLook( wlServers );
-    fdlServers = new FormData();
-    fdlServers.left = new FormAttachment( 0, 0 );
-    fdlServers.right = new FormAttachment( middle / 4, -margin );
-    fdlServers.top = new FormAttachment( wExpirationTime, margin );
-    wlServers.setLayoutData( fdlServers );
+    wFields =
+      new TableView( transMeta, shell, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI, colinf, 5, lsMod,
+        props );
 
-    wServers =
-        new TableView( transMeta, shell, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI, colinf, 5/* FieldsRows */, lsMod,
-            props );
+    fdFields = new FormData();
+    fdFields.left = new FormAttachment( middle / 4, 0 );
+    fdFields.top = new FormAttachment( lastControl, margin * 2, SWT.BOTTOM );
+    fdFields.right = new FormAttachment( 100, 0 );
+    wFields.setLayoutData( fdFields );
 
-    fdServers = new FormData();
-    fdServers.left = new FormAttachment( middle / 4, 0 );
-    fdServers.top = new FormAttachment( wExpirationTime, margin * 2 );
-    fdServers.right = new FormAttachment( 100, 0 );
-    // fdServers.bottom = new FormAttachment( 100, 0 );
-    wServers.setLayoutData( fdServers );
+    lastControl = wFields;
 
     // Some buttons
     wOK = new Button( shell, SWT.PUSH );
     wOK.setText( BaseMessages.getString( PKG, "System.Button.OK" ) );
     wCancel = new Button( shell, SWT.PUSH );
     wCancel.setText( BaseMessages.getString( PKG, "System.Button.Cancel" ) );
+    wGet = new Button( shell, SWT.PUSH );
+    wGet.setText( BaseMessages.getString( PKG, "HazelcastOutputDialog.GetFields.Button" ) );
+    fdGet = new FormData();
+    fdGet.left = new FormAttachment( 50, 0 );
+    fdGet.bottom = new FormAttachment( 100, 0 );
+    wGet.setLayoutData( fdGet );
 
-    setButtonPositions( new Button[] { wOK, wCancel }, margin, wServers );
+    setButtonPositions( new Button[]{ wOK, wCancel, wGet }, margin, null );
 
     // Add listeners
     lsCancel = new Listener() {
@@ -289,9 +261,15 @@ public class HazelcastOutputDialog extends BaseStepDialog implements StepDialogI
         ok();
       }
     };
+    lsGet = new Listener() {
+      public void handleEvent( Event e ) {
+        getFields();
+      }
+    };
 
     wCancel.addListener( SWT.Selection, lsCancel );
     wOK.addListener( SWT.Selection, lsOK );
+    wGet.addListener( SWT.Selection, lsGet );
 
     lsDef = new SelectionAdapter() {
       public void widgetDefaultSelected( SelectionEvent e ) {
@@ -316,35 +294,55 @@ public class HazelcastOutputDialog extends BaseStepDialog implements StepDialogI
 
     shell.open();
     while ( !shell.isDisposed() ) {
-      if ( !display.readAndDispatch() )
+      if ( !display.readAndDispatch() ) {
         display.sleep();
+      }
     }
     return stepname;
+  }
+
+  private String[] getStructureTypes() {
+    return new String[]{ "Queue" }; // TODO Topic, etc.
   }
 
   /**
    * Copy information from the meta-data input to the dialog fields.
    */
   public void getData() {
-    if ( !Const.isEmpty( input.getMapFieldName() ) ) {
-      wMapField.setText( input.getMapFieldName() );
+    if ( !Const.isEmpty( input.getStructureName() ) ) {
+      wStructureName.setText( input.getStructureName() );
     }
-    if ( !Const.isEmpty( input.getKeyFieldName() ) ) {
-      wKeyField.setText( input.getKeyFieldName() );
+    if ( !Const.isEmpty( input.getStructureType() ) ) {
+      wStructureType.setText( input.getStructureType() );
     }
-    if ( !Const.isEmpty( input.getValueFieldName() ) ) {
-      wValueField.setText( input.getValueFieldName() );
+    List<ValueMetaInterface> fields = input.getFields();
+    if ( fields != null ) {
+      int i = 0;
+      wFields.table.setItemCount( fields.size() );
+      for ( ValueMetaInterface field : fields ) {
+
+        TableItem item = wFields.table.getItem( i );
+        int col = 1;
+
+        item.setText( col++, field.getName() );
+        item.setText( col++, field.getTypeDesc() );
+        i++;
+      }
     }
+
+    wFields.removeEmptyRows();
+    wFields.setRowNums();
+    wFields.optWidth( true );
     wExpirationTime.setText( Integer.toString( input.getExpirationTime() ) );
 
     int i = 0;
     Set<InetSocketAddress> servers = input.getServers();
-    if(servers != null) {
+    if ( servers != null ) {
       for ( InetSocketAddress addr : input.getServers() ) {
-  
-        TableItem item = wServers.table.getItem( i );
+
+        TableItem item = wServers.getNonEmpty( i++ );
         int col = 1;
-  
+
         item.setText( col++, addr.getHostName() );
         item.setText( col++, Integer.toString( addr.getPort() ) );
       }
@@ -364,13 +362,30 @@ public class HazelcastOutputDialog extends BaseStepDialog implements StepDialogI
   }
 
   private void ok() {
-    if ( Const.isEmpty( wStepname.getText() ) )
+    if ( Const.isEmpty( wStepname.getText() ) ) {
       return;
+    }
 
     stepname = wStepname.getText(); // return value
-    input.setMapFieldName( wMapField.getText() );
-    input.setKeyFieldName( wKeyField.getText() );
-    input.setValueFieldName( wValueField.getText() );
+    input.setStructureName( wStructureName.getText() );
+    input.setStructureType( wStructureType.getText() );
+
+    int nrFields = wFields.nrNonEmpty();
+
+    List<ValueMetaInterface> fields = new ArrayList<ValueMetaInterface>( nrFields );
+    for ( int i = 0; i < nrFields; i++ ) {
+      try {
+        TableItem item = wFields.getNonEmpty( i );
+
+        ValueMetaInterface field =
+          ValueMetaFactory.createValueMeta( item.getText( 1 ), ValueMetaFactory.getIdForValueMeta( item.getText( 2 ) ) );
+        fields.add( field );
+      } catch ( Exception e ) {
+        // TODO
+      }
+    }
+    input.setFields( fields );
+
     input.setExpirationTime( Integer.parseInt( wExpirationTime.getText() ) );
 
     int nrServers = wServers.nrNonEmpty();
@@ -400,13 +415,27 @@ public class HazelcastOutputDialog extends BaseStepDialog implements StepDialogI
         fieldCombo.setItems( previousFields.getFieldNames() );
       }
 
-      if ( field != null )
+      if ( field != null ) {
         fieldCombo.setText( field );
+      }
       gotPreviousFields = true;
 
     } catch ( KettleException ke ) {
       new ErrorDialog( shell, BaseMessages.getString( PKG, "HazelcastOutputDialog.FailedToGetFields.DialogTitle" ),
-          BaseMessages.getString( PKG, "HazelcastOutputDialog.FailedToGetFields.DialogMessage" ), ke );
+        BaseMessages.getString( PKG, "HazelcastOutputDialog.FailedToGetFields.DialogMessage" ), ke );
+    }
+  }
+
+  private void getFields() {
+    try {
+      RowMetaInterface r = transMeta.getPrevStepFields( stepname );
+      if ( r != null && !r.isEmpty() ) {
+        BaseStepDialog.getFieldsFromPrevious( r, wFields, 1, new int[]{ 1 }, new int[]{ }, -1, -1, null );
+      }
+    } catch ( KettleException ke ) {
+      new ErrorDialog(
+        shell, BaseMessages.getString( PKG, "ZooKeeperOutputDialog.FailedToGetFields.DialogTitle" ), BaseMessages
+        .getString( PKG, "ZooKeeperOutputDialog.FailedToGetFields.DialogMessage" ), ke );
     }
   }
 }

@@ -108,10 +108,10 @@ public class HazelcastInput extends BaseStep implements StepInterface {
     }
 
     // Get map from Hazelcast, don't cast now, be lazy. TODO change this?
-    String mapName = fieldSubstitute( environmentSubstitute( meta.getMapFieldName() ), getInputRowMeta(), r );
+    String mapName = fieldSubstitute( environmentSubstitute( meta.getStructureName() ), getInputRowMeta(), r );
     int mapFieldIndex = getInputRowMeta().indexOfValue( mapName );
     if ( mapFieldIndex < 0 ) {
-      logBasic( BaseMessages.getString( PKG, "HazelcastInput.Warning.NotFound.MapField", mapName ) );
+      logBasic( BaseMessages.getString( PKG, "HazelcastInput.Warning.NotFound.StructureName", mapName ) );
     }
 
     // Get key name

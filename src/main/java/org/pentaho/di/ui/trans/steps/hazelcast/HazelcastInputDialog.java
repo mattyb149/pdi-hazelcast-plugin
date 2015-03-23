@@ -1,8 +1,6 @@
 /*******************************************************************************
  *
- * Pentaho Data Integration
- *
- * Copyright (C) 2002-2012 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2014-2015 by Matt Burgess
  *
  *******************************************************************************
  *
@@ -39,7 +37,6 @@ import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
@@ -54,29 +51,25 @@ import org.pentaho.di.core.row.ValueMeta;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStepMeta;
-import org.pentaho.di.trans.step.StepDialogInterface;
 import org.pentaho.di.trans.steps.hazelcast.HazelcastInputMeta;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
-import org.pentaho.di.ui.core.widget.ColumnInfo;
-import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.core.widget.TextVar;
-import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
-public class HazelcastInputDialog extends BaseStepDialog implements StepDialogInterface {
+public class HazelcastInputDialog extends BaseHazelcastDialog {
   private static Class<?> PKG = HazelcastInputMeta.class; // for i18n purposes, needed by Translator2!! $NON-NLS-1$
 
   private HazelcastInputMeta input;
   private boolean gotPreviousFields = false;
   private RowMetaInterface previousFields;
 
-  private Label wlMapField;
-  private TextVar wMapField;
-  private FormData fdlMapField, fdMapField;
-  
+  private Label wlStructName;
+  private TextVar wStructName;
+  private FormData fdlStructName, fdStructName;
+
   private Label wlKeyField;
   private CCombo wKeyField;
   private FormData fdlKeyField, fdKeyField;
-  
+
   private Label wlKeyTypeField;
   private CCombo wKeyTypeField;
   private FormData fdlKeyTypeField, fdKeyTypeField;
@@ -88,11 +81,6 @@ public class HazelcastInputDialog extends BaseStepDialog implements StepDialogIn
   private Label wlValueTypeField;
   private CCombo wValueTypeField;
   private FormData fdlValueTypeField, fdValueTypeField;
-
-  private Composite wServersComp;
-  private Label wlServers;
-  private TableView wServers;
-  private FormData fdlServers, fdServers;
 
   public HazelcastInputDialog( Shell parent, Object in, TransMeta tr, String sname ) {
     super( parent, (BaseStepMeta) in, tr, sname );
@@ -142,24 +130,24 @@ public class HazelcastInputDialog extends BaseStepDialog implements StepDialogIn
     fdStepname.top = new FormAttachment( 0, margin );
     fdStepname.right = new FormAttachment( 100, 0 );
     wStepname.setLayoutData( fdStepname );
-    
+
     // Map field
-    wlMapField = new Label( shell, SWT.RIGHT );
-    wlMapField.setText( BaseMessages.getString( PKG, "HazelcastInputDialog.MapField.Label" ) );
-    props.setLook( wlMapField );
-    fdlMapField = new FormData();
-    fdlMapField.left = new FormAttachment( 0, 0 );
-    fdlMapField.right = new FormAttachment( middle, -margin );
-    fdlMapField.top = new FormAttachment( wStepname, margin );
-    wlMapField.setLayoutData( fdlMapField );
-    wMapField = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wMapField );
-    wMapField.addModifyListener( lsMod );
-    fdMapField = new FormData();
-    fdMapField.left = new FormAttachment( middle, 0 );
-    fdMapField.top = new FormAttachment( wStepname, margin );
-    fdMapField.right = new FormAttachment( 100, 0 );
-    wMapField.setLayoutData( fdMapField );
+    wlStructName = new Label( shell, SWT.RIGHT );
+    wlStructName.setText( BaseMessages.getString( PKG, "HazelcastInputDialog.StructureName.Label" ) );
+    props.setLook( wlStructName );
+    fdlStructName = new FormData();
+    fdlStructName.left = new FormAttachment( 0, 0 );
+    fdlStructName.right = new FormAttachment( middle, -margin );
+    fdlStructName.top = new FormAttachment( wStepname, margin );
+    wlStructName.setLayoutData( fdlStructName );
+    wStructName = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wStructName );
+    wStructName.addModifyListener( lsMod );
+    fdStructName = new FormData();
+    fdStructName.left = new FormAttachment( middle, 0 );
+    fdStructName.top = new FormAttachment( wStepname, margin );
+    fdStructName.right = new FormAttachment( 100, 0 );
+    wStructName.setLayoutData( fdStructName );
 
     // Key field
     wlKeyField = new Label( shell, SWT.RIGHT );
@@ -168,14 +156,14 @@ public class HazelcastInputDialog extends BaseStepDialog implements StepDialogIn
     fdlKeyField = new FormData();
     fdlKeyField.left = new FormAttachment( 0, 0 );
     fdlKeyField.right = new FormAttachment( middle, -margin );
-    fdlKeyField.top = new FormAttachment( wMapField, margin );
+    fdlKeyField.top = new FormAttachment( wStructName, margin );
     wlKeyField.setLayoutData( fdlKeyField );
     wKeyField = new CCombo( shell, SWT.BORDER | SWT.READ_ONLY );
     props.setLook( wKeyField );
     wKeyField.addModifyListener( lsMod );
     fdKeyField = new FormData();
     fdKeyField.left = new FormAttachment( middle, 0 );
-    fdKeyField.top = new FormAttachment( wMapField, margin );
+    fdKeyField.top = new FormAttachment( wStructName, margin );
     fdKeyField.right = new FormAttachment( 100, 0 );
     wKeyField.setLayoutData( fdKeyField );
     wKeyField.addFocusListener( new FocusListener() {
@@ -190,7 +178,7 @@ public class HazelcastInputDialog extends BaseStepDialog implements StepDialogIn
         busy.dispose();
       }
     } );
-    
+
     // Key Type field
     wlKeyTypeField = new Label( shell, SWT.RIGHT );
     wlKeyTypeField.setText( BaseMessages.getString( PKG, "HazelcastInputDialog.KeyTypeField.Label" ) );
@@ -248,40 +236,10 @@ public class HazelcastInputDialog extends BaseStepDialog implements StepDialogIn
     wValueTypeField.setLayoutData( fdValueTypeField );
     wValueTypeField.setItems( ValueMeta.getAllTypes() );
 
-    ColumnInfo[] colinf =
-        new ColumnInfo[] {
-          new ColumnInfo( BaseMessages.getString( PKG, "HazelcastInputDialog.HostName.Column" ),
-              ColumnInfo.COLUMN_TYPE_TEXT, false ),
-          new ColumnInfo( BaseMessages.getString( PKG, "HazelcastInputDialog.Port.Column" ),
-              ColumnInfo.COLUMN_TYPE_TEXT, false ), };
 
     // Servers
-    wServersComp = new Composite( wValueTypeField, SWT.NONE );
-    props.setLook( wServersComp );
+    addServerUI( shell, wValueTypeField, props, transMeta, lsMod, 5 /* TODO */, SWT.NONE );
 
-    FormLayout fileLayout = new FormLayout();
-    fileLayout.marginWidth = 3;
-    fileLayout.marginHeight = 3;
-    wServersComp.setLayout( fileLayout );
-
-    wlServers = new Label( shell, SWT.RIGHT );
-    wlServers.setText( BaseMessages.getString( PKG, "HazelcastInputDialog.Servers.Label" ) );
-    props.setLook( wlServers );
-    fdlServers = new FormData();
-    fdlServers.left = new FormAttachment( 0, 0 );
-    fdlServers.right = new FormAttachment( middle/4, -margin );
-    fdlServers.top = new FormAttachment( wValueTypeField, margin );
-    wlServers.setLayoutData( fdlServers );
-
-    wServers =
-        new TableView( transMeta, shell, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI, colinf, 5/* FieldsRows */, lsMod,
-            props );
-
-    fdServers = new FormData();
-    fdServers.left = new FormAttachment( middle/4, 0 );
-    fdServers.top = new FormAttachment( wValueTypeField, margin*2 );
-    fdServers.right = new FormAttachment( 100, 0 );
-    wServers.setLayoutData( fdServers );
 
     // Some buttons
     wOK = new Button( shell, SWT.PUSH );
@@ -289,7 +247,7 @@ public class HazelcastInputDialog extends BaseStepDialog implements StepDialogIn
     wCancel = new Button( shell, SWT.PUSH );
     wCancel.setText( BaseMessages.getString( PKG, "System.Button.Cancel" ) );
 
-    setButtonPositions( new Button[] { wOK, wCancel }, margin, wServers );
+    setButtonPositions( new Button[]{ wOK, wCancel }, margin, null );
 
     // Add listeners
     lsCancel = new Listener() {
@@ -329,8 +287,9 @@ public class HazelcastInputDialog extends BaseStepDialog implements StepDialogIn
 
     shell.open();
     while ( !shell.isDisposed() ) {
-      if ( !display.readAndDispatch() )
+      if ( !display.readAndDispatch() ) {
         display.sleep();
+      }
     }
     return stepname;
   }
@@ -339,8 +298,8 @@ public class HazelcastInputDialog extends BaseStepDialog implements StepDialogIn
    * Copy information from the meta-data input to the dialog fields.
    */
   public void getData() {
-    if ( !Const.isEmpty( input.getMapFieldName() ) ) {
-      wMapField.setText( input.getMapFieldName() );
+    if ( !Const.isEmpty( input.getStructureName() ) ) {
+      wStructName.setText( input.getStructureName() );
     }
     if ( !Const.isEmpty( input.getKeyFieldName() ) ) {
       wKeyField.setText( input.getKeyFieldName() );
@@ -357,17 +316,17 @@ public class HazelcastInputDialog extends BaseStepDialog implements StepDialogIn
 
     int i = 0;
     Set<InetSocketAddress> servers = input.getServers();
-    if(servers != null) {
+    if ( servers != null ) {
       for ( InetSocketAddress addr : input.getServers() ) {
-  
-        TableItem item = wServers.table.getItem( i );
+
+        TableItem item = wServers.getNonEmpty( i++ );
         int col = 1;
-  
+
         item.setText( col++, addr.getHostName() );
         item.setText( col++, Integer.toString( addr.getPort() ) );
       }
     }
-    
+
     wServers.setRowNums();
     wServers.optWidth( true );
 
@@ -382,11 +341,12 @@ public class HazelcastInputDialog extends BaseStepDialog implements StepDialogIn
   }
 
   private void ok() {
-    if ( Const.isEmpty( wStepname.getText() ) )
+    if ( Const.isEmpty( wStepname.getText() ) ) {
       return;
+    }
 
     stepname = wStepname.getText(); // return value
-    input.setMapFieldName( wMapField.getText() );
+    input.setStructureName( wStructName.getText() );
     input.setKeyFieldName( wKeyField.getText() );
     input.setKeyTypeName( wKeyTypeField.getText() );
     input.setValueFieldName( wValueField.getText() );
@@ -426,7 +386,7 @@ public class HazelcastInputDialog extends BaseStepDialog implements StepDialogIn
 
     } catch ( KettleException ke ) {
       new ErrorDialog( shell, BaseMessages.getString( PKG, "HazelcastInputDialog.FailedToGetFields.DialogTitle" ),
-          BaseMessages.getString( PKG, "HazelcastInputDialog.FailedToGetFields.DialogMessage" ), ke );
+        BaseMessages.getString( PKG, "HazelcastInputDialog.FailedToGetFields.DialogMessage" ), ke );
     }
   }
 }
