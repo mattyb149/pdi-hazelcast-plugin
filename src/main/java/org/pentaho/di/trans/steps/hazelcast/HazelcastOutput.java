@@ -22,10 +22,8 @@ package org.pentaho.di.trans.steps.hazelcast;
 
 import java.net.InetSocketAddress;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import com.hazelcast.core.IQueue;
-import org.pentaho.di.core.RowMetaAndData;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.Trans;
@@ -40,7 +38,6 @@ import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.client.config.ClientNetworkConfig;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IMap;
 
 /**
  * The Hazelcast Output step stores value objects, for the given key names, to Hazelcast server(s).
