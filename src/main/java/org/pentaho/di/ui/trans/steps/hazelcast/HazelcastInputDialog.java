@@ -345,6 +345,12 @@ public class HazelcastInputDialog extends BaseHazelcastDialog {
         if (!Const.isEmpty(input.getValueTypeName())) {
             wValueTypeField.setText(input.getValueTypeName());
         }
+        if (!Const.isEmpty(input.getGroupName())) {
+            wGroupName.setText(input.getGroupName());
+        }
+        if (!Const.isEmpty(input.getGroupPassword())) {
+            wGroupPassword.setText(input.getGroupPassword());
+        }
 
         int i = 0;
         Set<InetSocketAddress> servers = input.getServers();
@@ -383,6 +389,8 @@ public class HazelcastInputDialog extends BaseHazelcastDialog {
         input.setKeyTypeName(wKeyTypeField.getText());
         input.setValueFieldName(wValueField.getText());
         input.setValueTypeName(wValueTypeField.getText());
+        input.setGroupName(wGroupName.getText());
+        input.setGroupPassword(wGroupPassword.getText());
 
         int nrServers = wServers.nrNonEmpty();
 
