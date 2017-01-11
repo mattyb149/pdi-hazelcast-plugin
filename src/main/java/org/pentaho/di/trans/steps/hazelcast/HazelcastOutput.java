@@ -24,8 +24,7 @@ import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.client.config.ClientNetworkConfig;
 import com.hazelcast.config.GroupConfig;
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IQueue;
+import com.hazelcast.core.*;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.i18n.BaseMessages;
@@ -111,16 +110,52 @@ public class HazelcastOutput extends BaseStep implements StepInterface {
 
         // Get structure from Hazelcast
         String structName = fieldSubstitute(environmentSubstitute(meta.getStructureName()), getInputRowMeta(), r);
-        String structType = meta.getStructureType();
-        // TODO better way to pick which API method to call based on structure type
-        if (structType == "Queue") {
-            IQueue<SerializableRow> q = client.getQueue(structName);
-            SerializableRow sRow = new SerializableRow(data.outputRowMeta, outputRowData);
-            if (!q.offer(sRow)) {
-                putError(data.outputRowMeta, outputRowData, 1,
-                        BaseMessages.getString(PKG, "HazelcastOutput.Error.Row.PutRowInQ"), null, null);
+        SerializableRow sRow = new SerializableRow(data.outputRowMeta, outputRowData);
+        switch (meta.getStructureType()) {
+            case IQueue: {
+                // simply queue in the row
+                IQueue<SerializableRow> q = client.getQueue(structName);
+                if (q != null) {
+                    if (!q.offer(sRow)) {
+                        putError(data.outputRowMeta, outputRowData, 1,
+                                BaseMessages.getString(PKG, "HazelcastOutput.Error.Row.PutRowInQ"), null, null);
+                    }
+                }
+                break;
             }
+            case IMap: {
+                IMap<Object, SerializableRow> m = client.getMap(structName);
+                Object outputRowKey = outputRowData[0];
+
+                if (m != null) {
+                    m.put(outputRowKey, sRow);
+                    if (!m.containsKey(outputRowKey))
+                        putError(data.outputRowMeta, outputRowData, 1, BaseMessages.getString(PKG, "Hazelcast.Error.Row.PutRowInM"), null, null);
+                }
+                break;
+            }
+            case ITopic: {
+                ITopic<SerializableRow> t = client.getTopic(structName);
+                if (t != null) {
+                    t.publish(sRow); // send row away
+                }
+                break;
+            }
+            case ISet: {
+                ISet<SerializableRow> s = client.getSet(structName);
+                if (s != null) {
+                    s.add(sRow);
+                    if (!s.contains(sRow))
+                        putError(data.outputRowMeta, outputRowData, 1, BaseMessages.getString(PKG, "Hazelcast.Error.Row.PutRowInS"), null, null);
+                }
+
+                break;
+            }
+            default:
+                logBasic(BaseMessages.getString(PKG, "HazelcastOutput.Log.UnknownStructureType", meta.getStructureType().toString()));
+                break;
         }
+
         putRow(data.outputRowMeta, outputRowData); // copy row to possible alternate rowset(s).
 
         if (checkFeedback(getLinesRead())) {

@@ -62,7 +62,7 @@ public class HazelcastOutputMeta extends BaseHazelcastMeta {
     public static final String STRUCTNAME_TAG = "structname";
     private static Class<?> PKG = HazelcastOutputMeta.class; // for i18n purposes, needed by Translator2!! $NON-NLS-1$
     private String structureName;
-    private String structureType;
+    private EStructureType structureType;
     private String groupName;
     private String groupPassword;
 
@@ -148,11 +148,11 @@ public class HazelcastOutputMeta extends BaseHazelcastMeta {
         this.structureName = structureName;
     }
 
-    public String getStructureType() {
+    public EStructureType getStructureType() {
         return structureType;
     }
 
-    public void setStructureType(String structureType) {
+    public void setStructureType(EStructureType structureType) {
         this.structureType = structureType;
     }
 
@@ -242,6 +242,10 @@ public class HazelcastOutputMeta extends BaseHazelcastMeta {
             throws KettleException {
         try {
             this.structureName = rep.getStepAttributeString(id_step, STRUCTNAME_TAG);
+
+            String strtype = rep.getStepAttributeString(id_step, "structuretype");
+            if (!Const.isEmpty(strtype))
+                this.structureType = Enum.valueOf(EStructureType.class, strtype);
             int nrFields = rep.countNrStepAttributes(id_step, "field_name");
             fields.clear();
             for (int i = 0; i < nrFields; i++) {
@@ -270,6 +274,9 @@ public class HazelcastOutputMeta extends BaseHazelcastMeta {
             throws KettleException {
         try {
             rep.saveStepAttribute(id_transformation, id_step, STRUCTNAME_TAG, this.structureName);
+            if (this.structureType != EStructureType.Undefined)
+                rep.saveStepAttribute(id_transformation, id_step, "structuretype", this.structureType.toString());
+
             for (int i = 0; i < fields.size(); i++) {
 
                 ValueMetaInterface field = fields.get(i);
