@@ -72,6 +72,14 @@ public class HazelcastOutputDialog extends BaseHazelcastDialog {
     private TextVar wExpirationTime;
     private FormData fdlExpirationTime, fdExpirationTime;
 
+    private Label wlGroupName;
+    private TextVar wGroupName;
+    private FormData fdlGroupName, fdGroupName;
+
+    private Label wlGroupPassword;
+    private TextVar wGroupPassword;
+    private FormData fdlGroupPassword, fdGroupPassword;
+
     public HazelcastOutputDialog(Shell parent, Object in, TransMeta tr, String sname) {
         super(parent, (BaseStepMeta) in, tr, sname);
         input = (HazelcastOutputMeta) in;
@@ -143,7 +151,7 @@ public class HazelcastOutputDialog extends BaseHazelcastDialog {
 
         lastControl = wStructureName;
 
-        // TODO Structure type
+        // Structure type
         wlStructureType = new Label(shell, SWT.RIGHT);
         wlStructureType.setText(BaseMessages.getString(PKG, "HazelcastOutputDialog.StructureType.Label"));
         props.setLook(wlStructureType);
@@ -165,6 +173,46 @@ public class HazelcastOutputDialog extends BaseHazelcastDialog {
         wStructureType.setLayoutData(fdStructureType);
 
         lastControl = wStructureType;
+
+        // GroupName field
+        wlGroupName = new Label(shell, SWT.RIGHT);
+        wlGroupName.setText(BaseMessages.getString(PKG, "HazelcastOutputDialog.GroupName.Label"));
+        props.setLook(wlGroupName);
+        fdlGroupName = new FormData();
+        fdlGroupName.left = new FormAttachment(0, 0);
+        fdlGroupName.right = new FormAttachment(middle, -margin);
+        fdlGroupName.top = new FormAttachment(lastControl, margin);
+        wlGroupName.setLayoutData(fdlGroupName);
+        wGroupName = new TextVar(transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+        props.setLook(wGroupName);
+        wGroupName.addModifyListener(lsMod);
+        fdGroupName = new FormData();
+        fdGroupName.left = new FormAttachment(middle, 0);
+        fdGroupName.top = new FormAttachment(wStructureType, margin);
+        fdGroupName.right = new FormAttachment(100, 0);
+        wGroupName.setLayoutData(fdGroupName);
+
+        lastControl = wGroupName;
+
+        // GroupPassword field
+        wlGroupPassword = new Label(shell, SWT.RIGHT);
+        wlGroupPassword.setText(BaseMessages.getString(PKG, "HazelcastOutputDialog.GroupPassword.Label"));
+        props.setLook(wlGroupPassword);
+        fdlGroupPassword = new FormData();
+        fdlGroupPassword.left = new FormAttachment(0, 0);
+        fdlGroupPassword.right = new FormAttachment(middle, -margin);
+        fdlGroupPassword.top = new FormAttachment(lastControl, margin);
+        wlGroupPassword.setLayoutData(fdlGroupPassword);
+        wGroupPassword = new TextVar(transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+        props.setLook(wGroupPassword);
+        wGroupPassword.addModifyListener(lsMod);
+        fdGroupPassword = new FormData();
+        fdGroupPassword.left = new FormAttachment(middle, 0);
+        fdGroupPassword.top = new FormAttachment(wGroupName, margin);
+        fdGroupPassword.right = new FormAttachment(100, 0);
+        wGroupPassword.setLayoutData(fdGroupPassword);
+
+        lastControl = wGroupPassword;
 
         // Expiration field
         wlExpirationTime = new Label(shell, SWT.RIGHT);
@@ -291,15 +339,15 @@ public class HazelcastOutputDialog extends BaseHazelcastDialog {
 
     private String[] getStructureTypes() {
         EStructureType[] values = EStructureType.values();
-        String[] strings = new String[values.length - 1];
+        List<String> strings = new ArrayList<String>();
         for (int i = 0; i < values.length; i++) {
             String s = values[i].toString();
             if (s.toLowerCase().equals("undefined"))
                 continue;
             // add to list
-            strings[i] = s;
+            strings.add(s);
         }
-        return strings;
+        return strings.toArray(new String[]{});
     }
 
     /**
@@ -309,7 +357,7 @@ public class HazelcastOutputDialog extends BaseHazelcastDialog {
         if (!Const.isEmpty(input.getStructureName())) {
             wStructureName.setText(input.getStructureName());
         }
-        if (input.getStructureType() != EStructureType.Undefined) {
+        if (input.getStructureType() != EStructureType.Undefined && input.getStructureType() != null) {
             wStructureType.setText(input.getStructureType().toString());
         }
         List<ValueMetaInterface> fields = input.getFields();
@@ -325,6 +373,14 @@ public class HazelcastOutputDialog extends BaseHazelcastDialog {
                 item.setText(col++, field.getTypeDesc());
                 i++;
             }
+        }
+
+        if(!Const.isEmpty(input.getGroupName())) {
+            wGroupName.setText(input.getGroupName());
+        }
+
+        if(!Const.isEmpty(input.getGroupPassword())) {
+            wGroupPassword.setText(input.getGroupPassword());
         }
 
         wFields.removeEmptyRows();
@@ -365,8 +421,14 @@ public class HazelcastOutputDialog extends BaseHazelcastDialog {
 
         stepname = wStepname.getText(); // return value
         input.setStructureName(wStructureName.getText());
-        EStructureType strType = Enum.valueOf(EStructureType.class, wStructureType.getText());
-        input.setStructureType(strType);
+        if(!Const.isEmpty(wStructureType.getText()))
+        {
+            EStructureType eStructureType = EStructureType.valueOf(wStructureType.getText());
+            input.setStructureType(eStructureType);
+        }
+
+        input.setGroupName(wGroupName.getText());
+        input.setGroupPassword(wGroupPassword.getText());
 
         int nrFields = wFields.nrNonEmpty();
 
@@ -375,8 +437,7 @@ public class HazelcastOutputDialog extends BaseHazelcastDialog {
             try {
                 TableItem item = wFields.getNonEmpty(i);
 
-                ValueMetaInterface field =
-                        ValueMetaFactory.createValueMeta(item.getText(1), ValueMetaFactory.getIdForValueMeta(item.getText(2)));
+                ValueMetaInterface field = ValueMetaFactory.createValueMeta(item.getText(1), ValueMetaFactory.getIdForValueMeta(item.getText(2)));
                 fields.add(field);
             } catch (Exception e) {
                 // TODO
