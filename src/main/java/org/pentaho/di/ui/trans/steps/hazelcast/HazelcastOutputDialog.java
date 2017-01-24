@@ -366,12 +366,11 @@ public class HazelcastOutputDialog extends BaseHazelcastDialog {
             wFields.table.setItemCount(fields.size());
             for (ValueMetaInterface field : fields) {
 
-                TableItem item = wFields.table.getItem(i);
+                TableItem item = wFields.table.getItem(i++);
                 int col = 1;
 
                 item.setText(col++, field.getName());
                 item.setText(col++, field.getTypeDesc());
-                i++;
             }
         }
 
@@ -389,11 +388,12 @@ public class HazelcastOutputDialog extends BaseHazelcastDialog {
         wExpirationTime.setText(Integer.toString(input.getExpirationTime()));
 
         int i = 0;
+
         Set<InetSocketAddress> servers = input.getServers();
         if (servers != null) {
             for (InetSocketAddress addr : input.getServers()) {
 
-                TableItem item = wServers.getNonEmpty(i++);
+                TableItem item = wServers.table.getItem(i++);
                 int col = 1;
 
                 item.setText(col++, addr.getHostName());
@@ -401,7 +401,6 @@ public class HazelcastOutputDialog extends BaseHazelcastDialog {
             }
         }
 
-        wServers.setRowNums();
         wServers.optWidth(true);
 
         wStepname.selectAll();
