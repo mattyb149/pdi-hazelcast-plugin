@@ -84,6 +84,7 @@ public class HazelcastOutputMeta extends BaseHazelcastMeta {
         retval.setExpirationTime(this.expirationTime);
         retval.setGroupName(this.groupName);
         retval.setGroupPassword(this.groupPassword);
+        retval.setStructureType(this.structureType);
         return retval;
     }
 
@@ -93,6 +94,7 @@ public class HazelcastOutputMeta extends BaseHazelcastMeta {
         this.expirationTime = 0;
         this.groupName = null;
         this.groupPassword = null;
+        this.structureType = EStructureType.Undefined;
     }
 
     public void getFields(RowMetaInterface inputRowMeta, String origin, RowMetaInterface[] info, StepMeta nextStep,
@@ -193,6 +195,7 @@ public class HazelcastOutputMeta extends BaseHazelcastMeta {
         try {
             StringBuffer xml = new StringBuffer();
             xml.append("    ").append(XMLHandler.addTagValue(STRUCTNAME_TAG, this.getStructureName()));
+            xml.append("    " + XMLHandler.addTagValue("structuretype", this.getStructureType().toString()));
             xml.append("    ").append(XMLHandler.openTag(XML_FIELDS_TAG));
             for (ValueMetaInterface valueMeta : fields) {
                 String valueMetaXml = valueMeta.getMetaXML();
@@ -218,6 +221,7 @@ public class HazelcastOutputMeta extends BaseHazelcastMeta {
     private void readData(Node stepnode) throws KettleXMLException {
         try {
             this.structureName = XMLHandler.getTagValue(stepnode, STRUCTNAME_TAG);
+            this.structureType = EStructureType.valueOf(XMLHandler.getTagValue(stepnode, "structuretype"));
             // get the metadata
             Node fieldsNode = XMLHandler.getSubNode(stepnode, XML_FIELDS_TAG);
             RowMeta rowMeta = new RowMeta(XMLHandler.getSubNode(fieldsNode, RowMeta.XML_META_TAG));
@@ -242,8 +246,8 @@ public class HazelcastOutputMeta extends BaseHazelcastMeta {
             throws KettleException {
         try {
             this.structureName = rep.getStepAttributeString(id_step, STRUCTNAME_TAG);
-
             String strtype = rep.getStepAttributeString(id_step, "structuretype");
+
             if (!Const.isEmpty(strtype))
                 this.structureType = Enum.valueOf(EStructureType.class, strtype);
             int nrFields = rep.countNrStepAttributes(id_step, "field_name");
