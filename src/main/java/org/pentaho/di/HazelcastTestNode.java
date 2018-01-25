@@ -2,6 +2,7 @@ package org.pentaho.di;
 
 import com.hazelcast.config.Config;
 import com.hazelcast.core.*;
+import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.trans.steps.hazelcast.SerializableRow;
 
 import java.io.IOException;
@@ -42,6 +43,15 @@ public class HazelcastTestNode implements ItemListener<SerializableRow> {
     @Override
     public void itemAdded(ItemEvent<SerializableRow> item) {
         System.out.println("object added: " + item.toString());
+        SerializableRow row = item.getItem();
+        row.prepareExtraction();
+
+        try {
+            String action = row.getString(0);
+
+        } catch (KettleValueException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
